@@ -1,29 +1,29 @@
-const { createLogger, format, transports } = require("winston");
-require("winston-mongodb");
-const path = require("path");
-require("dotenv").config();
+// src/utils/logger.js
+import { createLogger, format, transports } from "winston";
+import "winston-mongodb";
+import path from "path";
+import config from "../config/config.js";
 
 const { combine, timestamp, errors, json, printf } = format;
 
-const MONGO_URI = process.env.MONGO_URI;
-const PROJECT_ID = process.env.PROJECT_ID;
-
+// Custom log format
 const customFormat = printf(({ level, message, timestamp, file, method, projectID }) => {
     return `${timestamp} | Level: ${level.toUpperCase()} | ProjectID: ${projectID} | File: ${file} | Method: ${method} | Message: ${message}`;
 });
 
+// Create logger instance
 const logger = createLogger({
-    level: "silly", exitOnError: false,
-    // format: combine(timestamp(), errors({ stack: true }), json(), customFormat),
+    level: "silly",
+    exitOnError: false,
+    format: combine(timestamp(), errors({ stack: true }), json(), customFormat),
     transports: [
         new transports.Console(),
         new transports.MongoDB({
-            db: MONGO_URI,
+            db: config.mongoURI,
             collection: "logs",
             level: "silly",
-            tryReconnect: true, // Ensure reconnection on failure
-            options: { serverSelectionTimeoutMS: 5000 }, // Remove deprecated options
-            // format: combine(timestamp(), errors({ stack: true }), json()),
+            tryReconnect: true,
+            options: { serverSelectionTimeoutMS: 5000 },
         }),
     ],
 });
@@ -36,7 +36,7 @@ const LOG_LEVELS = {
     http: "http",
     verbose: "verbose",
     debug: "debug",
-    silly: "silly"
+    silly: "silly",
 };
 
 // Log function
@@ -46,8 +46,8 @@ const logMessage = (level, message, file, method) => {
         message,
         file: path.basename(file),
         method,
-        projectID: PROJECT_ID,
+        projectID: config.projectID,
     });
 };
 
-module.exports = { logger, logMessage, LOG_LEVELS };
+export { logger, logMessage, LOG_LEVELS };
